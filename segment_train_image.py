@@ -1,4 +1,3 @@
-
 import os
 import cv2
 import numpy as np
@@ -17,11 +16,18 @@ if not os.path.exists(splits_path):
 '''
 
 train_ids = open('train_ids.txt', 'w')
-categorys = ['i5','pl30','pl50','pl60','pl80','pl100', 'pl120']
+categorys = ['i2', 'i4', 'i5', 'il100', 'il60', 'il80', 'io', 'ip', 'p10', 'p11', 'p12', 'p19', 'p23', 'p26', 'p27',
+             'p3', 'p5', 'p6', 'pg', 'ph4', 'ph4.5', 'ph5', 'pl100', 'pl120', 'pl20', 'pl30', 'pl40', 'pl50','pl60', 'pl5',
+             'pl70', 'pl80', 'pm20', 'pm30', 'pm55', 'pn', 'pne', 'po', 'pr40', 'w13', 'w32', 'w55', 'w57', 'w59', 'wo']
+
+
 for id in txt_file:
   im_info = id.strip().split(';')
+  if not os.path.exists('train_TT100K/'+im_info[0]+'.jpg'):
+      print 'not exists', im_info[0]
+      continue
   if im_info[0] not in {'36748', '92338'}:#:== '93072'  # == '18166'
-    img = cv2.imread('train/'+im_info[0]+'.jpg')
+    img = cv2.imread('train_TT100K/'+im_info[0]+'.jpg')
     H = img.shape[0]
     W = img.shape[1]
     for i in range(4):
@@ -174,7 +180,7 @@ for id in txt_file:
 
   else:
       if im_info[0] == '36748':
-          img = cv2.imread('train/' + im_info[0] + '.jpg')
+          img = cv2.imread('train_TT100K/' + im_info[0] + '.jpg')
           H = img.shape[0]
           W = img.shape[1]
           _x1 = np.array([522, 750, 981, 1226])
@@ -213,7 +219,7 @@ for id in txt_file:
 
 
       elif im_info[0] == '92338':
-          img = cv2.imread('train/' + im_info[0] + '.jpg')
+          img = cv2.imread('train_TT100K/' + im_info[0] + '.jpg')
           H = img.shape[0]
           W = img.shape[1]
           _x1 = np.array([308,788,1310])
@@ -246,7 +252,7 @@ for id in txt_file:
               new_img = img[_y1[m]:_y2[m], _x1[m]:_x2[m],:]
               cv2.imwrite('train_split/'+im_info[0]+'_{:02d}_{:02d}.jpg'.format(i,num[m]), new_img)
       else:
-          print 'error', im_info[0]
+          print 'error1', im_info[0]
 
 split_txt_file.close()
 train_ids.close()
