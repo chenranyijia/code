@@ -7,17 +7,18 @@ import os
 import codecs
 import cv2
 
-#########设置路径#########
+
 os.chdir('/home/chenran/software/TT100K/data')
-path_img = 'train'
+path_img = 'train_TT100K'
 path_xml = 'train_xml'
 
-########打开并读取文件########
+if not os.path.exists(path_xml):
+    os.mkdir(path_xml)
+
 fp = open('annotation_train.txt')
 fp2 = open('train_sequence.txt', 'w')
 uavinfo = fp.readlines()
 
-########利用for循环读取文件内容并写入xml文件########
 for i in range(len(uavinfo)):
     line = uavinfo[i]
     line = line.strip().split(';')
@@ -31,7 +32,7 @@ for i in range(len(uavinfo)):
         name = name_plus_suffix.split('.')[0]
 #        remainder = len(line) % 6
 #        if remainder == 0:
-#            fp2.writelines(name+'\n')
+        fp2.writelines(name+'\n')
         if name:
             with codecs.open(path_xml + '/' + name + '.xml', 'w', 'utf-8') as xml:
                 xml.write('<annotation>\n')
@@ -60,12 +61,23 @@ for i in range(len(uavinfo)):
                     xml.write('\t\t<truncated>0</truncated>\n')
                     xml.write('\t\t<difficult>0</difficult>\n')
                     xml.write('\t\t<bndbox>\n')
+                    if int(line[5*j+1]) <= 0:
+                        line[5*j+1] = 1
                     xml.write('\t\t\t<xmin>' + str(line[5*j+1]) + '</xmin>\n')
+
+                    if int(line[5*j+2]) <= 0:
+                        line[5*j+2] = 1
                     xml.write('\t\t\t<ymin>' + str(line[5*j+2]) + '</ymin>\n')
+
+                    if int(line[5*j+3]) >=  width -1:
+                        line[5*j+3] = width-2
                     xml.write('\t\t\t<xmax>' + str(line[5*j+3]) + '</xmax>\n')
+
+                    if int(line[5*j+4]) >=  height -1:
+                        line[5*j+4] = height - 2
                     xml.write('\t\t\t<ymax>' + str(line[5*j+4]) + '</ymax>\n')
                     xml.write('\t\t</bndbox>\n')
                     xml.write('\t</object>\n')
-                xml.write('</annotation>') 
+                xml.write('</annotation>')
 fp2.close()
 fp.close()
