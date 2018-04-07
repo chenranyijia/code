@@ -1,7 +1,3 @@
-# Convert annotation information to xml files, written in python.
-
-#encoding=utf-8
-
 import sys
 import os
 import codecs
@@ -11,25 +7,30 @@ import shutil
 os.chdir('/home/chenran/software/TT100K/data')
 catg = {}
 catg1 = {}
-im_info = open('annotation_train_split.txt').readlines()
+im_info = open('annotation_train.txt').readlines()
 
-new_annotation = open('new_annotation.txt','w')
-new_train_ids = open('new_train_ids.txt','w')
-valid_new_annotation = open('valid_new_annotation.txt','w')
-valid_new_train_ids = open('valid_new_train_ids.txt','w')
+new_annotation = open('/home/chenran/Desktop/data/data_without_argument/train/train_annotation.txt','w')
+new_train_ids = open('/home/chenran/Desktop/data/data_without_argument/train/train_ids.txt','w')
+valid_new_annotation = open('/home/chenran/Desktop/data/data_without_argument/valid/valid_annotation.txt','w')
+valid_new_train_ids = open('/home/chenran/Desktop/data/data_without_argument/valid/valid_ids.txt','w')
 
-min_num = 45
+min_num = 40
 min_num1 = 20
 
-if not os.path.exists('123_train'):
-    os.mkdir('123_train')
+train_img_path = '/home/chenran/Desktop/data/data_without_argument/train/train_img'
+if not os.path.exists(train_img_path):
+    os.mkdir(train_img_path)
 
-if not os.path.exists('valid_123_train'):
-    os.mkdir('valid_123_train')
+valid_img_path = '/home/chenran/Desktop/data/data_without_argument/valid/valid_img'
+if not os.path.exists(valid_img_path):
+    os.mkdir(valid_img_path)
 
 for img_infom in im_info:
     img_infom = img_infom.strip().split(';')
-    img_name = 'train_split/'+img_infom[0]+'.jpg'
+    img_name = 'train/'+img_infom[0]+'.jpg'
+    if not os.path.exists(img_name):
+        print 'not found img'
+        continue
     L = (len(img_infom)-2)/5
     flag = False
     for i in range(L):
@@ -47,7 +48,7 @@ for img_infom in im_info:
                 catg[cat] = 1
             else:
                 catg[cat] += 1
-        shutil.copy(img_name, '123_train')
+        shutil.copy(img_name, train_img_path)
         for k in range(len(img_infom)):
             new_annotation.write(img_infom[k])
             new_annotation.write(';')
@@ -71,7 +72,7 @@ for img_infom in im_info:
                     catg1[cat1] = 1
                 else:
                     catg1[cat1] += 1
-            shutil.copy(img_name, 'valid_123_train')
+            shutil.copy(img_name, valid_img_path)
             for k in range(len(img_infom)):
                 valid_new_annotation.write(img_infom[k])
                 valid_new_annotation.write(';')
