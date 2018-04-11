@@ -2,14 +2,17 @@ import os
 import cv2
 import numpy as np
 
-os.chdir('/home/chenran/software/TT100K/data')
+os.chdir('/home/chenran/Desktop/data/data_without_argument/train')
 txt_file = open('annotation_train.txt').readlines()
-split_txt_file = open('annotation_train_split.txt', 'w')
+split_txt_file = open('train_split/annotation_train_split.txt', 'w')
 
-split_path = 'train_split'
+split_path = 'train_split/train_split_img'
 if not os.path.exists(split_path):
     os.mkdir(split_path)
 
+error_path = 'train_split/error_img'
+if not os.path.exists(error_path):
+    os.mkdir(error_path)
 #split_path_addition = 'train_split_addition/'
 #if not os.path.exists(split_path_addition):
 #    os.mkdir(split_path_addition)
@@ -19,7 +22,7 @@ if not os.path.exists(splits_path):
     os.mkdir(splits_path)
 '''
 
-train_ids = open('train_ids.txt', 'w')
+train_ids = open('train_split/train_ids.txt', 'w')
 categorys = ['i2', 'i4', 'i5', 'il100', 'il60', 'il80', 'io', 'ip', 'p10', 'p11', 'p12', 'p19', 'p23', 'p26', 'p27',
              'p3', 'p5', 'p6', 'pg', 'ph4', 'ph4.5', 'ph5', 'pl100', 'pl120', 'pl20', 'pl30', 'pl40', 'pl50','pl60', 'pl5',
              'pl70', 'pl80', 'pm20', 'pm30', 'pm55', 'pn', 'pne', 'po', 'pr40', 'w13', 'w32', 'w55', 'w57', 'w59', 'wo']
@@ -35,11 +38,11 @@ def calculate_overlap(grid, bounding):
 
 for id in txt_file:
     im_info = id.strip().split(';')
-    if not os.path.exists('train/'+im_info[0]+'.jpg'):
+    if not os.path.exists('train_img/'+im_info[0]+'.jpg'):
         print 'not exists', im_info[0]
         continue
   #if im_info[0] not in {'36748', '92338'}:#:== '93072'  # == '18166'
-    img = cv2.imread('train/'+im_info[0]+'.jpg')
+    img = cv2.imread('train_img/'+im_info[0]+'.jpg')
     H = img.shape[0]
     W = img.shape[1]
 
@@ -146,21 +149,37 @@ for id in txt_file:
                                 origin_y2 = H-1
                                 for m in range(len(outside_x1)):
                                     overlap = calculate_overlap([x1_min,y1_min,x2_max,y2_max],[outside_x1[m],outside_y1[m],outside_x2[m],outside_y2[m]])
-                                    if overlap > 0:
-                                        print 'can not segmentation in', im_info[0] + '_{:02d}_{:02d}'.format(i, j)
+                                    outside_area = (outside_x2[m] - outside_x1[m]) * (outside_y2[m] - outside_y1[m])
+                                    if float(overlap)/float(outside_area) > 0.1:
+                                        print 'can not segmentation in (H/4, W/4)', im_info[0] + '_{:02d}_{:02d}'.format(i, j)
+                                        error_img = img[origin_y1:origin_y2,origin_x1:origin_x2,:]
+                                        cv2.imwrite(error_path + '/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), error_img)
                                         flag = False
                                         break
                                     else:
-                                        overlap = calculate_overlap([origin_x1,origin_y1,origin_x2,origin_y2],[outside_x1[m],outside_y1[m],outside_x2[m],outside_y2[m]])
-                                        if overlap > 0:
-                                            if outside_x2[m] < x1_min:
-                                                origin_x1 = outside_x2[m]
-                                            if outside_x1[m] > x2_max:
-                                                origin_x2 = outside_x1[m]
-                                            if outside_y2[m] < y1_min:
-                                                origin_y1 = outside_y2[m]
-                                            if outside_y1[m] > y2_max:
-                                                origin_y2 = outside_y1[m]
+                                        if float(overlap) / float(outside_area) > 0:
+                                            if outside_x1[m] < x1_min and x1_min < outside_x2[m] < x2_max:
+                                                origin_x1 = x1_min
+                                            elif x1_min < outside_x1[m] < x2_max and outside_x2[m] > x2_max:
+                                                origin_x2 = x2_max
+                                            elif outside_y1[m] < y1_min and y1_min < outside_y2[m] < y2_max:
+                                                origin_y1 = y1_min
+                                            elif outside_y2[m] > y2_max and y1_min < outside_y1[m] < y2_max:
+                                                origin_y2 = y2_max
+                                            else:
+                                                print 'error', im_info[0]
+
+                                        else:
+                                            overlap = calculate_overlap([origin_x1,origin_y1,origin_x2,origin_y2],[outside_x1[m],outside_y1[m],outside_x2[m],outside_y2[m]])
+                                            if overlap > 0:
+                                                if outside_x2[m] < x1_min:
+                                                    origin_x1 = outside_x2[m]
+                                                if outside_x1[m] > x2_max:
+                                                    origin_x2 = outside_x1[m]
+                                                if outside_y2[m] < y1_min:
+                                                    origin_y1 = outside_y2[m]
+                                                if outside_y1[m] > y2_max:
+                                                    origin_y2 = outside_y1[m]
                                 if flag:
                                   if origin_x2-origin_x1 >= W/4 and origin_y2-origin_y1 >= H/4:
                                     start_x = np.random.randint(max(origin_x1, max(0,x2_max-W/4)), min(x1_min,max(0,origin_x2-W/4))+1)
@@ -183,43 +202,15 @@ for id in txt_file:
                                         split_txt_file.write(inside_category[m])
                                         split_txt_file.write(';')
                                     split_txt_file.write('\n')
-                                  elif (origin_x2-origin_x1) < W/4 and (origin_y2-origin_y1) < H/4:
-
-                                      if min(origin_x2-origin_x1,origin_y2-origin_y1) < max(x2_max-x1_min,y2_max-y1_min):
-                                          print 'can not extracted in isometry', im_info[0], i, j
-                                      else:
-                                          bounding = np.random.randint(max(x2_max-x1_min, y2_max-y1_min),min(origin_x2 - origin_x1,origin_y2-origin_y1))
-                                          start_x = np.random.randint(max(origin_x1, max(0,x2_max-bounding)),min(x1_min, max(0,origin_x2-bounding)) + 1)
-                                          start_y = np.random.randint(max(origin_y1, max(0,y2_max-bounding)),min(y1_min, max(0,origin_y2-bounding)) + 1)
-                                          scale = float(H / 4) / bounding
-                                          new_img = img[start_y:start_y + bounding, start_x:start_x + bounding, :]
-                                          new_img = cv2.resize(new_img, (W / 4, H / 4), interpolation=cv2.INTER_CUBIC)
-                                          cv2.imwrite(split_path + '/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j),new_img)
-                                          train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                                          train_ids.write('\n')
-                                          split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                                          split_txt_file.write(';')
-                                          for m in range(len(inside_x1)):
-                                              split_txt_file.write(str(int(scale * (inside_x1[m] - start_x))))
-                                              split_txt_file.write(';')
-                                              split_txt_file.write(str(int(scale * (inside_y1[m] - start_y))))
-                                              split_txt_file.write(';')
-                                              split_txt_file.write(str(int(scale * (inside_x2[m] - start_x))))
-                                              split_txt_file.write(';')
-                                              split_txt_file.write(str(int(scale * (inside_y2[m] - start_y))))
-                                              split_txt_file.write(';')
-                                              split_txt_file.write(inside_category[m])
-                                              split_txt_file.write(';')
-                                          split_txt_file.write('\n')
-
-
 
                                   else:
                                     bounding = min(origin_x2-origin_x1, origin_y2-origin_y1)
-                                    if bounding < (x2_max-x1_min) and bounding < (y2_max-y1_min):
+                                    if bounding < (x2_max-x1_min) or bounding < (y2_max-y1_min):
                                         print 'can not extract in isometry', im_info[0]
+                                        error_img = img[origin_y1:origin_y2, origin_x1:origin_x2, :]
+                                        cv2.imwrite(error_path + '/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), error_img)
                                     else:
-                                        bounding = min(origin_x2 - origin_x1, origin_y2 - origin_y1)
+                                        #bounding = min(origin_x2 - origin_x1, origin_y2 - origin_y1)
                                         if origin_x2-origin_x1 < origin_y2-origin_y1:
                                             start_x = origin_x1
                                             start_y = np.random.randint(max(origin_y1, max(0,y2_max - bounding)),min(y1_min, max(0,origin_y2 -bounding ))+ 1)
@@ -246,14 +237,8 @@ for id in txt_file:
                                             split_txt_file.write(inside_category[m])
                                             split_txt_file.write(';')
                                         split_txt_file.write('\n')
-
-                                    #elif origin_x2-origin_x1 < origin_y2-origin_y1:
-                                    #        S_length = origin_x2-origin_x1
-                                    #        start_x = origin_x1
-                                    #        start_y = np.random.randint(max(origin_y1, y2_max-S_length), min(y1_min,origin_y2-S_length+1)
-                                    #        scale = float(H/4)/S_length
-                                    #        new_img = img[start_y:start_y+S_length, start_x:start_x+S_length,:]
-                                    #        new_img = cv2.resize(new_img,(W/4, H/4), interpolation=cv2.INTER_CUBIC)
+                                        
+                        #some signs outside (i*H/4:(i+1)*H/4, j*W/4:(j+1)*W/4)
                         else:
                             flag = True
                             origin_x1 = 0
@@ -261,26 +246,38 @@ for id in txt_file:
                             origin_x2 = W - 1
                             origin_y2 = H - 1
                             for m in range(len(outside_x1)):
-                                overlap = calculate_overlap([x1_min, y1_min, x2_max, y2_max],
-                                                            [outside_x1[m], outside_y1[m], outside_x2[m],
-                                                             outside_y2[m]])
-                                if overlap > 0:
-                                    print 'can not segmentation out', im_info[0] + '_{:02d}_{:02d}'.format(i, j)
+                                overlap = calculate_overlap([x1_min, y1_min, x2_max, y2_max],[outside_x1[m], outside_y1[m], outside_x2[m],outside_y2[m]])
+                                outside_area = (outside_x2[m] - outside_x1[m]) * (outside_y2[m] - outside_y1[m])
+                                if float(overlap)/float(outside_area) > 0.1:
+                                    print float(overlap)/float(outside_area)
+                                    print 'can not segmentation in biases', im_info[0] + '_{:02d}_{:02d}'.format(i, j)
+                                    error_img = img[origin_y1:origin_y2,origin_x1:origin_x2,:]
+                                    cv2.imwrite(error_path + '/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), error_img)
                                     flag = False
                                     break
                                 else:
-                                    overlap = calculate_overlap([origin_x1, origin_y1, origin_x2, origin_y2],
-                                                                [outside_x1[m], outside_y1[m], outside_x2[m],
-                                                                 outside_y2[m]])
-                                    if overlap > 0:
-                                        if outside_x2[m] < x1_min:
-                                            origin_x1 = outside_x2[m]
-                                        if outside_x1[m] > x2_max:
-                                            origin_x2 = outside_x1[m]
-                                        if outside_y2[m] < y1_min:
-                                            origin_y1 = outside_y2[m]
-                                        if outside_y1[m] > y2_max:
-                                            origin_y2 = outside_y1[m]
+                                    if float(overlap) / float(outside_area) > 0:
+                                        if outside_x1[m] < x1_min and x1_min < outside_x2[m] < x2_max:
+                                            origin_x1 = x1_min
+                                        elif x1_min < outside_x1[m] < x2_max and outside_x2[m] > x2_max:
+                                            origin_x2 = x2_max
+                                        elif outside_y1[m] < y1_min and y1_min < outside_y2[m] < y2_max:
+                                            origin_y1 = y1_min
+                                        elif outside_y2[m] > y2_max and y1_min < outside_y1[m] < y2_max:
+                                            origin_y2 = y2_max
+                                        else:
+                                            print 'error', im_info[0]
+                                    else:
+                                        overlap = calculate_overlap([origin_x1, origin_y1, origin_x2, origin_y2],[outside_x1[m], outside_y1[m], outside_x2[m], outside_y2[m]])
+                                        if overlap > 0:
+                                            if outside_x2[m] < x1_min:
+                                                origin_x1 = outside_x2[m]
+                                            if outside_x1[m] > x2_max:
+                                                origin_x2 = outside_x1[m]
+                                            if outside_y2[m] < y1_min:
+                                                origin_y1 = outside_y2[m]
+                                            if outside_y1[m] > y2_max:
+                                                origin_y2 = outside_y1[m]
                             if flag:
                               if origin_x2 - origin_x1 >= W / 4 and origin_y2 - origin_y1 >= H / 4:
                                 start_x = np.random.randint(max(origin_x1, max(0,x2_max - W / 4)),
@@ -306,14 +303,15 @@ for id in txt_file:
                                     split_txt_file.write(inside_category[m])
                                     split_txt_file.write(';')
                                 split_txt_file.write('\n')
-                              elif origin_x2-origin_x1 < W/4 and origin_y2-origin_y1 < H/4:
-                                print 'can not extracted in isometry', im_info[0], i, j
+
                               else:
                                 bounding = min(origin_x2-origin_x1, origin_y2-origin_y1)
                                 if bounding < (x2_max-x1_min) or bounding < (y2_max-y1_min):
                                     print 'can not extracted in isometry', im_info[0]
+                                    error_img = img[origin_y1:origin_y2, origin_x1:origin_x2, :]
+                                    cv2.imwrite(error_path + '/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j),error_img)
+
                                 else:
-                                    bounding = min(origin_x2 - origin_x1, origin_y2 - origin_y1)
                                     if origin_x2-origin_x1 < origin_y2-origin_y1:
                                         start_x = origin_x1
                                         start_y = np.random.randint(max(origin_y1, max(0,y2_max - bounding)),min(y1_min, max(0,origin_y2 -bounding ))+ 1)
@@ -340,7 +338,6 @@ for id in txt_file:
                                         split_txt_file.write(inside_category[m])
                                         split_txt_file.write(';')
                                     split_txt_file.write('\n')
-
                     else:
                         origin_x1 = 0
                         origin_y1 = 0
@@ -351,26 +348,43 @@ for id in txt_file:
                             overlap = calculate_overlap([x1_min, y1_min, x2_max, y2_max],
                                                         [outside_x1[m], outside_y1[m], outside_x2[m],
                                                          outside_y2[m]])
-                            if overlap > 0:
+                            outside_area = (outside_x2[m] - outside_x1[m]) * (outside_y2[m] - outside_y1[m])
+                            if float(overlap)/float(outside_area) > 0.1:
                                 flag = False
                                 print 'can not segmentation out', im_info[0] + '_{:02d}_{:02d}'.format(i, j)
+                                error_img = img[j*H/4:(j+1)*H/4, i*W/4:(i+1)*W/4, :]
+                                cv2.imwrite(error_path + '/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j),error_img)
                                 break
                             else:
-                                overlap = calculate_overlap([origin_x1, origin_y1, origin_x2, origin_y2],
+                                if float(overlap) / float(outside_area) > 0:
+                                    if outside_x1[m] < x1_min and x1_min < outside_x2[m] < x2_max:
+                                        origin_x1 = x1_min
+                                    elif x1_min < outside_x1[m] < x2_max and outside_x2[m] > x2_max:
+                                        origin_x2 = x2_max
+                                    elif outside_y1[m] < y1_min and y1_min < outside_y2[m] < y2_max:
+                                        origin_y1 = y1_min
+                                    elif outside_y2[m] > y2_max and y1_min < outside_y1[m] < y2_max:
+                                        origin_y2 = y2_max
+                                    else:
+                                        print 'error', im_info[0]
+                                else:
+                                    overlap = calculate_overlap([origin_x1, origin_y1, origin_x2, origin_y2],
                                                             [outside_x1[m], outside_y1[m], outside_x2[m],
                                                              outside_y2[m]])
-                                if overlap > 0:
-                                    if outside_x2[m] < x1_min:
-                                        origin_x1 = outside_x2[m]
-                                    if outside_x1[m] > x2_max:
-                                        origin_x2 = outside_x1[m]
-                                    if outside_y2[m] < y1_min:
-                                        origin_y1 = outside_y2[m]
-                                    if outside_y1[m] > y2_max:
-                                        origin_y2 = outside_y1[m]
+                                    if overlap > 0:
+                                        if outside_x2[m] < x1_min:
+                                            origin_x1 = outside_x2[m]
+                                        if outside_x1[m] > x2_max:
+                                            origin_x2 = outside_x1[m]
+                                        if outside_y2[m] < y1_min:
+                                            origin_y1 = outside_y2[m]
+                                        if outside_y1[m] > y2_max:
+                                            origin_y2 = outside_y1[m]
                         if flag:
                             if min(origin_x2-origin_x1, origin_y2-origin_y1) < max(x2_max-x1_min,y2_max-y1_min):
                                 print 'large, can not segmentation in isometry'
+                                error_img = img[origin_y1:origin_y2, origin_x1:origin_x2,:]
+                                cv2.imwrite(error_path+'/'+im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), error_img)
                             else:
                                 bounding = max(x2_max-x1_min,y2_max-y1_min)
                                 if x2_max-x1_min > y2_max-y1_min:
@@ -399,4 +413,3 @@ for id in txt_file:
                                     split_txt_file.write(inside_category[m])
                                     split_txt_file.write(';')
                                 split_txt_file.write('\n')
-
