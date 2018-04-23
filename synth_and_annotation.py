@@ -13,6 +13,8 @@ while img_names != '':
     img_names = glob(os.path.join('/home/chenran/Desktop/123/virtual_sign', '*.jpg'))
     back_imgs = glob(os.path.join('/home/chenran/software/TT100K/data/nosign_1_split', '*.jpg'))
     img_num = np.random.randint(1,6,1)[0]
+    if img_num > len(img_names):
+        continue
     img_name = random.sample(img_names, img_num)
     back_img_name = random.sample(back_imgs, 1)[0]
     imgs = []
