@@ -2,11 +2,13 @@ import os
 import cv2
 import numpy as np
 
-os.chdir('/home/chenran/software/TT100K/data')
-txt_file = open('annotation_train.txt').readlines()
-split_txt_file = open('new_annotation_train.txt', 'w')
+os.chdir('/home/chenran/Desktop/data-1024')
+txt_file = open('train.txt').readlines()
+split_txt_file = open('train_split.txt', 'w')
 
-split_path = 'train_split'
+origin_img_path = 'train/'
+
+split_path = 'train_split/'
 if not os.path.exists(split_path):
     os.mkdir(split_path)
 
@@ -19,7 +21,7 @@ if not os.path.exists(splits_path):
     os.mkdir(splits_path)
 '''
 
-train_ids = open('train_ids.txt', 'w')
+#train_ids = open('train_ids.txt', 'w')
 categorys = ['i2', 'i4', 'i5', 'il100', 'il60', 'il80', 'io', 'ip', 'p10', 'p11', 'p12', 'p19', 'p23', 'p26', 'p27',
              'p3', 'p5', 'p6', 'pg', 'ph4', 'ph4.5', 'ph5', 'pl100', 'pl120', 'pl20', 'pl30', 'pl40', 'pl50','pl60', 'pl5',
              'pl70', 'pl80', 'pm20', 'pm30', 'pm55', 'pn', 'pne', 'po', 'pr40', 'w13', 'w32', 'w55', 'w57', 'w59', 'wo']
@@ -27,15 +29,15 @@ categorys = ['i2', 'i4', 'i5', 'il100', 'il60', 'il80', 'io', 'ip', 'p10', 'p11'
 
 for id in txt_file:
     im_info = id.strip().split(';')
-    if not os.path.exists('train/'+im_info[0]+'.jpg'):
+    if not os.path.exists(origin_img_path+im_info[0]+'.jpg'):
         print 'not exists', im_info[0]
         continue
   #if im_info[0] not in {'36748', '92338'}:#:== '93072'  # == '18166'
-    img = cv2.imread('train/'+im_info[0]+'.jpg')
+    img = cv2.imread(origin_img_path+im_info[0]+'.jpg')
     H = img.shape[0]
     W = img.shape[1]
-    for i in range(4):
-        for j in range(4):
+    for i in range(2):
+        for j in range(2):
             _x1 = []
             _y1 = []
             _x2 = []
@@ -49,7 +51,7 @@ for id in txt_file:
                     y2 = int(im_info[k * 5 + 4])
                     ctr_x = (x2 + x1) / 2
                     ctr_y = (y2 + y1) / 2
-                    if ctr_y >= i * H / 4 and ctr_x >= j * W / 4 and ctr_y < (i + 1) * H / 4 and ctr_x < (j + 1) * W / 4:
+                    if ctr_y >= i * H / 2 and ctr_x >= j * W / 2 and ctr_y < (i + 1) * H / 2 and ctr_x < (j + 1) * W / 2:
                         Flag = 1
                         _x1.append(x1)
                         _y1.append(y1)
@@ -65,34 +67,34 @@ for id in txt_file:
                 y1_min = min(_y1)#min(min(_y1), i*H/4)
                 x2_max = max(_x2)#max(max(_x2), (j+1)*W/4)
                 y2_max = max(_y2)#max(max(_y2), (i+1)*H/4)
-                if x2_max-x1_min <= W/4 and y2_max-y1_min <= H/4:
-                  if x1_min >= j*W/4 and y1_min >= i*H/4 and x2_max <= (j+1)*W/4 and y2_max <= (i+1)*H/4:
-                    train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                    train_ids.write('\n')
-                    new_img = img[i*(H/4):(i+1)*H/4, j*W/4:(j+1)*W/4,:]
-                    cv2.imwrite('train_split/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
+                if x2_max-x1_min <= W/2 and y2_max-y1_min <= H/2:
+                  if x1_min >= j*W/2 and y1_min >= i*H/2 and x2_max <= (j+1)*W/2 and y2_max <= (i+1)*H/2:
+                    #train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
+                    #train_ids.write('\n')
+                    new_img = img[i*(H/2):(i+1)*H/2, j*W/2:(j+1)*W/2,:]
+                    cv2.imwrite(split_path + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
                     split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
                     split_txt_file.write(';')
                     for m in range(len(_x1)):
-                        split_txt_file.write(str(_x1[m] - j*W/4))
+                        split_txt_file.write(str(_x1[m] - j*W/2))
                         split_txt_file.write(';')
-                        split_txt_file.write(str(_y1[m] - i*H/4))
+                        split_txt_file.write(str(_y1[m] - i*H/2))
                         split_txt_file.write(';')
-                        split_txt_file.write(str(_x2[m] - j*W/4))
+                        split_txt_file.write(str(_x2[m] - j*W/2))
                         split_txt_file.write(';')
-                        split_txt_file.write(str(_y2[m] - i*H/4))
+                        split_txt_file.write(str(_y2[m] - i*H/2))
                         split_txt_file.write(';')
                         split_txt_file.write(_category[m])
                         split_txt_file.write(';')
                     split_txt_file.write('\n')
 
-                  elif x1_min < j*W/4 or y1_min < i*H/4:
-                    coord_x = min(x1_min, j*W/4)
-                    coord_y = min(y1_min, i*H/4)
+                  elif x1_min < j*W/2 or y1_min < i*H/2:
+                    coord_x = min(x1_min, j*W/2)
+                    coord_y = min(y1_min, i*H/2)
 
 
 
-                    if x2_max <= (j+1)*W/4 and y2_max <= (i+1)*H/4:
+                    if x2_max <= (j+1)*W/2 and y2_max <= (i+1)*H/2:
 
                       f=0
                       for g in range((len(im_info) - 2) / 5):
@@ -103,18 +105,18 @@ for id in txt_file:
                               yg2 = int(im_info[g * 5 + 4])
                               ctrg_x = (xg2 + xg1) / 2
                               ctrg_y = (yg2 + yg1) / 2
-                              if ctrg_y >= coord_y and ctrg_x >= coord_x and ctrg_y < coord_y + H / 4 and coord_x + W / 4:
+                              if ctrg_y >= coord_y and ctrg_x >= coord_x and ctrg_y < coord_y + H / 2 and coord_x + W / 2:
                                   f += 1
                       d = 0
                       for e in range(len(_x1)):
-                          if _x1[e] >= coord_x and _x2[e] <= coord_x+W/4 and _y1[e] >= coord_y and _y2[e] <= coord_y+H/4:
+                          if _x1[e] >= coord_x and _x2[e] <= coord_x+W/2 and _y1[e] >= coord_y and _y2[e] <= coord_y+H/2:
                               d += 1
 
                       if f == d and f == len(_x1):
-                        train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                        train_ids.write('\n')
-                        new_img = img[coord_y:coord_y + H / 4, coord_x:coord_x + W / 4, :]
-                        cv2.imwrite('train_split/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
+                        #train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
+                        #train_ids.write('\n')
+                        new_img = img[coord_y:coord_y + H / 2, coord_x:coord_x + W / 2, :]
+                        cv2.imwrite(split_path + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
                         split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
                         split_txt_file.write(';')
                         for m in range(len(_x1)):
@@ -130,12 +132,12 @@ for id in txt_file:
                           split_txt_file.write(';')
                         split_txt_file.write('\n')
                       else:
-                          train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                          train_ids.write('\n')
-                          coord_y = i*H/4
-                          coord_x = j*W/4
-                          new_img = img[coord_y:coord_y + H / 4, coord_x:coord_x + W / 4, :]
-                          cv2.imwrite('train_split_addition/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
+                          #train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
+                          #train_ids.write('\n')
+                          coord_y = i*H/2
+                          coord_x = j*W/2
+                          new_img = img[coord_y:coord_y + H / 2, coord_x:coord_x + W / 2, :]
+                          cv2.imwrite(split_path_addition + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
                           split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
                           split_txt_file.write(';')
                           for m in range(len(_x1)):
@@ -153,8 +155,8 @@ for id in txt_file:
 
 
 
-                    elif x2_max > (j+1)*W/4:
-                      coord_x = x2_max-W/4
+                    elif x2_max > (j+1)*W/2:
+                      coord_x = x2_max-W/2
                       coord_y = coord_y
 
                       f=0
@@ -166,18 +168,18 @@ for id in txt_file:
                               yg2 = int(im_info[g * 5 + 4])
                               ctrg_x = (xg2 + xg1) / 2
                               ctrg_y = (yg2 + yg1) / 2
-                              if ctrg_y >= coord_y and ctrg_x >= coord_x and ctrg_y < coord_y + H / 4 and coord_x + W / 4:
+                              if ctrg_y >= coord_y and ctrg_x >= coord_x and ctrg_y < coord_y + H / 2 and coord_x + W / 2:
                                   f += 1
                       d = 0
                       for e in range(len(_x1)):
-                          if _x1[e] >= coord_x and _x2[e] <= coord_x+W/4 and _y1[e] >= coord_y and _y2[e] <= coord_y+H/4:
+                          if _x1[e] >= coord_x and _x2[e] <= coord_x+W/2 and _y1[e] >= coord_y and _y2[e] <= coord_y+H/2:
                               d += 1
 
                       if f==d and f == len(_x1):
-                        train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                        train_ids.write('\n')
-                        new_img = img[coord_y:coord_y + H / 4, coord_x:coord_x + W / 4, :]
-                        cv2.imwrite('train_split/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
+                        #train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
+                        #train_ids.write('\n')
+                        new_img = img[coord_y:coord_y + H / 2, coord_x:coord_x + W / 2, :]
+                        cv2.imwrite(split_path + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
                         split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
                         split_txt_file.write(';')
                         for m in range(len(_x1)):
@@ -194,12 +196,12 @@ for id in txt_file:
                         split_txt_file.write('\n')
 
                       else:
-                          train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                          train_ids.write('\n')
-                          coord_y = i*H/4
-                          coord_x = j*W/4
-                          new_img = img[coord_y:coord_y + H / 4, coord_x:coord_x + W / 4, :]
-                          cv2.imwrite('train_split_addition/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
+                          #train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
+                          #train_ids.write('\n')
+                          coord_y = i*H/2
+                          coord_x = j*W/2
+                          new_img = img[coord_y:coord_y + H / 2, coord_x:coord_x + W / 2, :]
+                          cv2.imwrite(split_path_addition + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
                           split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
                           split_txt_file.write(';')
                           for m in range(len(_x1)):
@@ -216,9 +218,9 @@ for id in txt_file:
                           split_txt_file.write('\n')
 
 
-                    elif y2_max > (i+1)*H/4:
+                    elif y2_max > (i+1)*H/2:
                       coord_x = coord_x
-                      coord_y = y2_max - H/4
+                      coord_y = y2_max - H/2
 
                       f=0
                       for g in range((len(im_info) - 2) / 5):
@@ -229,18 +231,18 @@ for id in txt_file:
                               yg2 = int(im_info[g * 5 + 4])
                               ctrg_x = (xg2 + xg1) / 2
                               ctrg_y = (yg2 + yg1) / 2
-                              if ctrg_y >= coord_y and ctrg_x >= coord_x and ctrg_y < coord_y + H / 4 and coord_x + W / 4:
+                              if ctrg_y >= coord_y and ctrg_x >= coord_x and ctrg_y < coord_y + H / 2 and coord_x + W / 2:
                                   f += 1
                       d = 0
                       for e in range(len(_x1)):
-                          if _x1[e] >= coord_x and _x2[e] <= coord_x+W/4 and _y1[e] >= coord_y and _y2[e] <= coord_y+H/4:
+                          if _x1[e] >= coord_x and _x2[e] <= coord_x+W/2 and _y1[e] >= coord_y and _y2[e] <= coord_y+H/2:
                               d += 1
 
                       if f==d and f==len(_x1):
-                        train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                        train_ids.write('\n')
-                        new_img = img[coord_y:coord_y + H / 4, coord_x:coord_x + W / 4, :]
-                        cv2.imwrite('train_split/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
+                        #train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
+                        #train_ids.write('\n')
+                        new_img = img[coord_y:coord_y + H / 2, coord_x:coord_x + W / 2, :]
+                        cv2.imwrite(split_path + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
                         split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
                         split_txt_file.write(';')
                         for m in range(len(_x1)):
@@ -257,12 +259,12 @@ for id in txt_file:
                         split_txt_file.write('\n')
 
                       else:
-                          train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                          train_ids.write('\n')
-                          coord_y = i*H/4
-                          coord_x = j*W/4
-                          new_img = img[coord_y:coord_y + H / 4, coord_x:coord_x + W / 4, :]
-                          cv2.imwrite('train_split_addition/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
+                          #train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
+                          #train_ids.write('\n')
+                          coord_y = i*H/2
+                          coord_x = j*W/2
+                          new_img = img[coord_y:coord_y + H / 2, coord_x:coord_x + W / 2, :]
+                          cv2.imwrite(split_path_addition + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
                           split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
                           split_txt_file.write(';')
                           for m in range(len(_x1)):
@@ -281,13 +283,13 @@ for id in txt_file:
                     else:
                       print 'error', im_info[0]
 
-                  elif x2_max > (j+1) * W / 4 or y2_max > (i+1) * H / 4:
-                      coord_x = max(x2_max, (j+1) * W / 4)
-                      coord_x -= W/4
-                      coord_y = max(y2_max, (i+1) * H / 4)
-                      coord_y -= H/4
+                  elif x2_max > (j+1) * W / 2 or y2_max > (i+1) * H / 2:
+                      coord_x = max(x2_max, (j+1) * W / 2)
+                      coord_x -= W/2
+                      coord_y = max(y2_max, (i+1) * H / 2)
+                      coord_y -= H/2
 
-                      if x1_min >= j * W / 4 and y1_min >= i * H / 4:
+                      if x1_min >= j * W / 2 and y1_min >= i * H / 2:
 
                           f = 0
                           for g in range((len(im_info) - 2) / 5):
@@ -298,17 +300,17 @@ for id in txt_file:
                                   yg2 = int(im_info[g * 5 + 4])
                                   ctrg_x = (xg2 + xg1) / 2
                                   ctrg_y = (yg2 + yg1) / 2
-                                  if ctrg_y >= coord_y and ctrg_x >= coord_x and ctrg_y < coord_y + H / 4 and coord_x + W / 4:
+                                  if ctrg_y >= coord_y and ctrg_x >= coord_x and ctrg_y < coord_y + H / 2 and coord_x + W / 2:
                                       f += 1
                           d = 0
                           for e in range(len(_x1)):
-                              if _x1[e] >= coord_x and _x2[e] <= coord_x + W / 4 and _y1[e] >= coord_y and _y2[e] <= coord_y + H / 4:
+                              if _x1[e] >= coord_x and _x2[e] <= coord_x + W / 2 and _y1[e] >= coord_y and _y2[e] <= coord_y + H / 2:
                                   d += 1
                           if d==f and d == len(_x1):
-                            train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                            train_ids.write('\n')
-                            new_img = img[coord_y:coord_y+H/4, coord_x:coord_x+W/4, :]
-                            cv2.imwrite('train_split/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
+                            #train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
+                            #train_ids.write('\n')
+                            new_img = img[coord_y:coord_y+H/2, coord_x:coord_x+W/2, :]
+                            cv2.imwrite(split_path + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
                             split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
                             split_txt_file.write(';')
                             for m in range(len(_x1)):
@@ -324,12 +326,12 @@ for id in txt_file:
                                 split_txt_file.write(';')
                             split_txt_file.write('\n')
                           else:
-                              train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                              train_ids.write('\n')
-                              coord_y = i * H / 4
-                              coord_x = j * W / 4
-                              new_img = img[coord_y:coord_y + H / 4, coord_x:coord_x + W / 4, :]
-                              cv2.imwrite('train_split_addition/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j),
+                              #train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
+                              #train_ids.write('\n')
+                              coord_y = i * H / 2
+                              coord_x = j * W / 2
+                              new_img = img[coord_y:coord_y + H / 2, coord_x:coord_x + W / 2, :]
+                              cv2.imwrite(split_path_addition + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j),
                                           new_img)
                               split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
                               split_txt_file.write(';')
@@ -353,20 +355,20 @@ for id in txt_file:
                       print 'error', im_info[0]
                 else:
                     print 'afetrnoon', im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j)
-                    train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
-                    train_ids.write('\n')
-                    new_img = img[i * (H / 4):(i + 1) * H / 4, j * W / 4:(j + 1) * W / 4, :]
-                    cv2.imwrite('train_split_addition/' + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
+                    #train_ids.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
+                    #train_ids.write('\n')
+                    new_img = img[i * (H / 2):(i + 1) * H / 2, j * W / 2:(j + 1) * W / 2, :]
+                    cv2.imwrite(split_path_addition + im_info[0] + '_{:02d}_{:02d}.jpg'.format(i, j), new_img)
                     split_txt_file.write(im_info[0] + '_{:02d}_{:02d}'.format(i, j))
                     split_txt_file.write(';')
                     for m in range(len(_x1)):
-                        split_txt_file.write(str(_x1[m] - j * W / 4))
+                        split_txt_file.write(str(_x1[m] - j * W / 2))
                         split_txt_file.write(';')
-                        split_txt_file.write(str(_y1[m] - i * H / 4))
+                        split_txt_file.write(str(_y1[m] - i * H / 2))
                         split_txt_file.write(';')
-                        split_txt_file.write(str(_x2[m] - j * W / 4))
+                        split_txt_file.write(str(_x2[m] - j * W / 2))
                         split_txt_file.write(';')
-                        split_txt_file.write(str(_y2[m] - i * H / 4))
+                        split_txt_file.write(str(_y2[m] - i * H / 2))
                         split_txt_file.write(';')
                         split_txt_file.write(_category[m])
                         split_txt_file.write(';')
@@ -374,4 +376,4 @@ for id in txt_file:
 
 
 split_txt_file.close()
-train_ids.close()
+#train_ids.close()
